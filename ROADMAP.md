@@ -10,7 +10,7 @@ Desarrollo de momento en **WSL (Ubuntu) local**, dentro de tu PC Windows. El VPS
 - [x] Python 3.12.7 instalado con `pyenv` (compilado a mano; `deadsnakes` no soporta ya Ubuntu 20.04)
 - [x] Recreado `backend/.venv` con Python 3.12 y comprobado `pytest` (2 passed)
 - [x] Backend probado (`/api/health` y `/api/companies`) en `http://localhost:8000` (sin túnel SSH)
-- [ ] Crear repositorio privado en GitHub y subir esta carpeta — **aplazado**, de momento seguimos solo en local
+- [x] Crear repositorio privado en GitHub y subir esta carpeta (`antonioruizruiz/borkerai`)
 - [ ] Crear cuenta en console.anthropic.com y una API key (se usará en la Fase 6)
 - [ ] (Más adelante, Fase 8) Contratar/activar el VPS Ubuntu, conectar por SSH y desplegar ahí
 

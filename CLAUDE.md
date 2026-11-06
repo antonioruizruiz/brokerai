@@ -5,6 +5,10 @@ Aplicación web para **estudiar el IBEX 35**: tendencias, histórico de cotizaci
 panel de recomendaciones, cartera personal y **simulaciones (backtest)** de haber seguido las recomendaciones.
 Es una herramienta de estudio personal, **no asesoramiento financiero**.
 
+El universo de empresas ha crecido más allá del IBEX 35: ahora incluye también Dow Jones, Nasdaq-100 y
+acciones sueltas sin índice (campo `indice` en `Company`, ver `backend/app/data/universo.py`). El nombre y el
+foco siguen siendo "Broker IBEX 35", pero el código ya está preparado para analizar varios mercados.
+
 Inspiración visual y funcional: capturas `Captura de pantalla 2026-10-30 *.png` en la raíz (app "Trading AI").
 
 ## Sobre el usuario
@@ -27,7 +31,7 @@ Antonio no tiene experiencia programando. Por tanto:
 ## Stack
 - **Backend**: Python 3.12, FastAPI, SQLAlchemy 2, Pydantic v2, pandas, pandas-ta, APScheduler, SDK `anthropic`.
 - **BD**: SQLite en desarrollo (`backend/data/broker.db`), PostgreSQL en producción.
-- **Datos**: `yfinance` (tickers `.MC`) para el prototipo, detrás de una interfaz `MarketDataProvider` para poder cambiar a un proveedor de pago (EODHD / Twelve Data / FMP) sin tocar el resto.
+- **Datos**: `yfinance` para el prototipo, detrás de una interfaz `MarketDataProvider` para poder cambiar a un proveedor de pago (EODHD / Twelve Data / FMP) sin tocar el resto. Tickers `.MC` para IBEX 35; tickers normales de EE. UU. para Dow Jones, Nasdaq-100 y acciones sueltas.
 - **Frontend**: React + Vite + TypeScript + Tailwind CSS + shadcn/ui; gráficas con TradingView Lightweight Charts (precio) y Recharts (barras/factores). React Query para llamadas a la API.
 - **Despliegue**: VPS Ubuntu, Docker Compose (backend, frontend estático, postgres) + Caddy (HTTPS automático).
 
@@ -38,17 +42,24 @@ broker/
 ├── ROADMAP.md           ← fases y estado
 ├── GUIA_CLAUDE_CODE.md  ← cómo trabajar con Claude Code + prompts por fase
 ├── backend/
+│   ├── alembic/              (migraciones de BD)
+│   ├── scripts/download_history.py  (descarga de histórico)
 │   ├── app/
-│   │   ├── main.py          (FastAPI, rutas bajo /api)
-│   │   ├── core/config.py   (configuración desde .env)
-│   │   ├── data/ibex35.py   (universo de valores)
-│   │   ├── api/             (routers)
-│   │   ├── models/          (SQLAlchemy)
-│   │   ├── services/        (datos, scoring, backtest, IA)
-│   │   └── jobs/            (tarea diaria)
-│   └── tests/
-├── frontend/            (se crea en la Fase 2 con Vite)
-└── deploy/              (docker-compose, Caddyfile — Fase 8)
+│   │   ├── main.py            (FastAPI, rutas bajo /api)
+│   │   ├── core/               (config.py: .env; db.py: engine/sesión)
+│   │   ├── data/                (ibex35.py, dowjones.py, nasdaq100.py, sueltas.py,
+│   │   │                         universo.py combina los 4 grupos)
+│   │   ├── api/                 (routers: cartera, companies, dividends, fiabilidad,
+│   │   │                         indices, ranking, recommendations, settings;
+│   │   │                         filters.py es una utilidad compartida, no un router)
+│   │   ├── models/              (SQLAlchemy: company, price, dividend, index_bar,
+│   │   │                         portfolio_entry, trading_settings)
+│   │   ├── services/            (market_data, scoring, recommendations, backtest,
+│   │   │                         portfolio, dividends, news, company_management)
+│   │   └── jobs/                (tarea diaria — todavía no existe, se crea en la Fase 8)
+│   └── tests/                  (pytest, un archivo por endpoint/servicio)
+├── frontend/            (Vite + React + TS; página propia por cada sección del menú)
+└── deploy/              (LEEME.md; docker-compose y Caddyfile pendientes — Fase 8)
 ```
 
 ## Convenciones
