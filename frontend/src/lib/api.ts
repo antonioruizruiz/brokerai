@@ -55,6 +55,13 @@ export interface RankingItem {
   volumen_relativo: number | null
 }
 
+export interface SyncEstado {
+  descarga_completa_en_progreso: boolean
+  ultima_descarga_completa: string | null
+  ultima_actualizacion_horaria: string | null
+  ultimo_error: string | null
+}
+
 export interface TradingSettings {
   capital_total: number
   riesgo_pct_operacion: number
@@ -301,4 +308,12 @@ export function borrarPosicionCartera(id: number): Promise<void> {
 
 export function getDividendos(indice?: string | null): Promise<DividendoResumen[]> {
   return get<DividendoResumen[]>(conIndice('/api/dividendos', indice))
+}
+
+export function getSyncEstado(): Promise<SyncEstado> {
+  return get<SyncEstado>('/api/sync/estado')
+}
+
+export function lanzarDescargaCompleta(): Promise<{ detail: string }> {
+  return post<{ detail: string }>('/api/sync/descarga-completa', {})
 }

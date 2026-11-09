@@ -46,6 +46,7 @@ def init_db() -> None:
     _run_migrations()
     _seed_companies_que_falten()
     _seed_trading_settings_if_empty()
+    _seed_sync_status_if_empty()
 
 
 def _seed_companies_que_falten() -> None:
@@ -70,6 +71,18 @@ def _seed_trading_settings_if_empty() -> None:
     try:
         if db.query(TradingSettings).count() == 0:
             db.add(TradingSettings(id=1))
+            db.commit()
+    finally:
+        db.close()
+
+
+def _seed_sync_status_if_empty() -> None:
+    from app.models.sync_status import SyncStatus
+
+    db = SessionLocal()
+    try:
+        if db.query(SyncStatus).count() == 0:
+            db.add(SyncStatus(id=1))
             db.commit()
     finally:
         db.close()

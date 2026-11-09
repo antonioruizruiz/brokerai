@@ -12,13 +12,17 @@ from app.api.indices import router as indices_router
 from app.api.ranking import router as ranking_router
 from app.api.recommendations import router as recommendations_router
 from app.api.settings import router as settings_router
+from app.api.sync import router as sync_router
 from app.core.db import init_db
+from app.jobs.scheduler import detener_scheduler, iniciar_scheduler
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    iniciar_scheduler()
     yield
+    detener_scheduler()
 
 
 app = FastAPI(title="Broker IBEX 35", version="0.1.0", lifespan=lifespan)
@@ -39,6 +43,7 @@ app.include_router(indices_router)
 app.include_router(ranking_router)
 app.include_router(recommendations_router)
 app.include_router(settings_router)
+app.include_router(sync_router)
 
 
 @app.get("/api/health")

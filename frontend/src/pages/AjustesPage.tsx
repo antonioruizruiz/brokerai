@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { getSettings, updateSettings, type TradingSettings } from '@/lib/api'
+import { getSettings, getSyncEstado, lanzarDescargaCompleta, updateSettings, type TradingSettings } from '@/lib/api'
+import { formatDateTime } from '@/lib/format'
 
 const CAMPOS: { clave: keyof TradingSettings; etiqueta: string; ayuda: string; sufijo: string }[] = [
   {
@@ -51,6 +52,19 @@ export function AjustesPage() {
     mutationFn: updateSettings,
     onSuccess: (nuevosValores) => {
       queryClient.setQueryData(['settings'], nuevosValores)
+    },
+  })
+
+  const { data: syncEstado } = useQuery({
+    queryKey: ['sync-estado'],
+    queryFn: getSyncEstado,
+    refetchInterval: (query) => (query.state.data?.descarga_completa_en_progreso ? 5_000 : 60_000),
+  })
+
+  const descargaMutacion = useMutation({
+    mutationFn: lanzarDescargaCompleta,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sync-estado'] })
     },
   })
 
@@ -110,6 +124,45 @@ export function AjustesPage() {
               </div>
             </form>
           )}
+        </CardContent>
+      </Card>
+
+      <Card className="max-w-xl">
+        <CardHeader>
+          <CardTitle>Datos de mercado</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Los precios se refrescan solos cada hora mientras el backend está encendido. Si quieres volver a
+            descargar los 10 años de histórico completo de todo el universo (tarda varios minutos), usa este botón.
+          </p>
+
+          <div className="space-y-1 text-sm">
+            <p>
+              <span className="text-muted-foreground">Última actualización horaria: </span>
+              {syncEstado?.ultima_actualizacion_horaria ? formatDateTime(syncEstado.ultima_actualizacion_horaria) : '—'}
+            </p>
+            <p>
+              <span className="text-muted-foreground">Última descarga completa: </span>
+              {syncEstado?.ultima_descarga_completa ? formatDateTime(syncEstado.ultima_descarga_completa) : '—'}
+            </p>
+            {syncEstado?.ultimo_error && <p className="text-xs text-danger">Último error: {syncEstado.ultimo_error}</p>}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={syncEstado?.descarga_completa_en_progreso || descargaMutacion.isPending}
+              onClick={() => descargaMutacion.mutate()}
+            >
+              {syncEstado?.descarga_completa_en_progreso ? 'Descargando...' : 'Descargar todo el histórico de nuevo'}
+            </Button>
+            {descargaMutacion.isSuccess && !syncEstado?.descarga_completa_en_progreso && (
+              <span className="text-sm text-success">Iniciada.</span>
+            )}
+            {descargaMutacion.isError && <span className="text-sm text-danger">No se ha podido iniciar.</span>}
+          </div>
         </CardContent>
       </Card>
     </div>

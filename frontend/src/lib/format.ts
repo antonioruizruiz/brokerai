@@ -24,3 +24,15 @@ export function formatDate(iso: string): string {
   const [year, month, day] = iso.split('-')
   return `${day}/${month}/${year}`
 }
+
+export function formatDateTime(isoUtc: string): string {
+  const fecha = new Date(isoUtc.endsWith('Z') ? isoUtc : `${isoUtc}Z`)
+  return fecha.toLocaleString('es-ES', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Europe/Madrid',
+  })
+}

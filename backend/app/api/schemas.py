@@ -214,3 +214,12 @@ class PriceBarOut(BaseModel):
     low: float
     close: float
     volume: int
+
+
+class SyncEstadoOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    descarga_completa_en_progreso: bool
+    ultima_descarga_completa: datetime | None = None
+    ultima_actualizacion_horaria: datetime | None = None
+    ultimo_error: str | None = None
