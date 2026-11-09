@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { getCompanies } from '@/lib/api'
 import { formatDate, formatPct, formatPrecio } from '@/lib/format'
 import { TODOS, useIndiceSeleccionado } from '@/lib/indiceContext'
@@ -13,6 +15,12 @@ export function MercadoPage() {
     queryKey: ['companies', indiceParaApi],
     queryFn: () => getCompanies(indiceParaApi),
   })
+  const [busqueda, setBusqueda] = useState('')
+
+  const termino = busqueda.trim().toLowerCase()
+  const datosFiltrados = data?.filter(
+    (company) => company.ticker.toLowerCase().includes(termino) || company.name.toLowerCase().includes(termino),
+  )
 
   const fechaActualizacion = data
     ?.map((c) => c.last_price_date)
@@ -32,11 +40,19 @@ export function MercadoPage() {
         </p>
       </div>
 
+      <Input
+        type="search"
+        placeholder="Buscar por ticker o nombre..."
+        value={busqueda}
+        onChange={(e) => setBusqueda(e.target.value)}
+        className="max-w-xs"
+      />
+
       <Card className="overflow-hidden">
         {isLoading && <p className="p-5 text-muted-foreground">Cargando...</p>}
         {isError && <p className="p-5 text-danger">No se ha podido conectar con el backend.</p>}
 
-        {data && (
+        {datosFiltrados && (
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-left text-muted-foreground">
@@ -48,7 +64,14 @@ export function MercadoPage() {
               </tr>
             </thead>
             <tbody>
-              {data.map((company) => (
+              {datosFiltrados.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-5 py-5 text-center text-muted-foreground">
+                    Ninguna empresa coincide con "{busqueda}".
+                  </td>
+                </tr>
+              )}
+              {datosFiltrados.map((company) => (
                 <tr key={company.ticker} className="border-b border-border last:border-0 hover:bg-muted">
                   <td className="px-5 py-3">
                     <Link to={`/mercado/${company.ticker}`} className="font-medium text-primary">
