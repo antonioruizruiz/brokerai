@@ -5,7 +5,9 @@ import { PriceChart } from '@/components/PriceChart'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { actualizarActivaEmpresa, getCompany, getCompanyNews, getCompanyPrices } from '@/lib/api'
-import { formatDate } from '@/lib/format'
+import { formatDate, formatPct, formatPrecio } from '@/lib/format'
+import { calcularResumenCotizacion } from '@/lib/retornos'
+import { cn } from '@/lib/utils'
 
 export function CompanyDetailPage() {
   const { ticker = '' } = useParams()
@@ -31,6 +33,8 @@ export function CompanyDetailPage() {
     queryFn: () => getCompanyPrices(ticker),
     enabled: ticker.length > 0,
   })
+
+  const resumenCotizacion = data ? calcularResumenCotizacion(data) : null
 
   const {
     data: noticias,
@@ -77,6 +81,39 @@ export function CompanyDetailPage() {
           </div>
         )}
       </div>
+
+      {resumenCotizacion && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Cotización</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap items-baseline gap-3">
+              <span className="text-2xl font-semibold">
+                {formatPrecio(resumenCotizacion.precioActual, empresa?.moneda)}
+              </span>
+              <span className="text-sm text-muted-foreground">a {formatDate(resumenCotizacion.fechaActual)}</span>
+            </div>
+            <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-6">
+              {resumenCotizacion.retornos.map(({ etiqueta, pct }) => (
+                <div key={etiqueta} className="rounded-lg border border-border p-2 text-center">
+                  <p className="text-xs text-muted-foreground">{etiqueta}</p>
+                  <p
+                    className={cn(
+                      'font-medium',
+                      pct == null && 'text-muted-foreground',
+                      pct != null && pct > 0 && 'text-success',
+                      pct != null && pct < 0 && 'text-danger',
+                    )}
+                  >
+                    {pct != null ? formatPct(pct) : '—'}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
