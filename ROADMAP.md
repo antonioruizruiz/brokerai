@@ -62,8 +62,11 @@ Antonio tenga la clave.
 - [x] Página Dividendos (rentabilidad por dividendo, historial, próxima fecha estimada — `GET /api/dividendos`)
 
 ## Fase 8 — Despliegue en VPS Ubuntu
-- [ ] Dockerfiles backend/frontend + docker-compose con PostgreSQL
-- [ ] Caddy con dominio y HTTPS
-- [ ] Login (un solo usuario)
-- [ ] Tarea diaria automática tras el cierre del mercado español (~18:30 Madrid)
-- [ ] Copias de seguridad de la BD
+Código listo (`backend/Dockerfile`, `frontend/Dockerfile` + `Caddyfile`, `deploy/`); pendiente de probar de
+verdad con `docker compose up --build` (ver `deploy/LEEME.md`) y, más adelante, con el VPS y dominio reales.
+- [ ] Dockerfiles backend/frontend + docker-compose con PostgreSQL — código listo, falta probarlo
+- [ ] Caddy con dominio y HTTPS — código listo (automático en cuanto `DOMAIN` sea un dominio real), falta probarlo
+- [ ] Login (un solo usuario) — `basic_auth` en Caddy delante de toda la app, código listo, falta probarlo
+- [ ] Tarea diaria automática tras el cierre del mercado (23:00 Madrid, ya cubre Dow Jones/Nasdaq-100 también) —
+      código listo (`app/jobs/scheduler.py`), falta probarlo
+- [ ] Copias de seguridad de la BD — `deploy/backup.sh` + cron, código listo, falta probarlo

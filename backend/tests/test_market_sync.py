@@ -104,6 +104,20 @@ def test_actualizacion_horaria_refresca_la_vela_de_hoy_y_no_toca_empresas_sin_hi
     assert estado.ultima_actualizacion_horaria is not None
 
 
+def test_descarga_completa_se_omite_si_ya_hay_una_en_marcha(db_aislada):
+    estado = db_aislada.query(SyncStatus).filter(SyncStatus.id == 1).first() or SyncStatus(id=1)
+    estado.descarga_completa_en_progreso = True
+    db_aislada.add(estado)
+    db_aislada.commit()
+
+    resultado = descargar_historial_completo(db=db_aislada, provider=_ProviderFijo(), pausa_entre_valores_segundos=0)
+
+    assert resultado == {"omitida": True}
+    assert db_aislada.query(PriceBar).count() == 0
+    # El guard no debe tocar el flag: sigue en marcha la descarga que ya hubiera.
+    assert db_aislada.query(SyncStatus).filter(SyncStatus.id == 1).one().descarga_completa_en_progreso is True
+
+
 def test_empresas_inactivas_se_saltan_en_ambos_modos(db_aislada):
     san = db_aislada.query(Company).filter(Company.ticker == "SAN.MC").one()
     san.activa = False

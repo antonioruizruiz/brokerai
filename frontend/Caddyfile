@@ -6,6 +6,14 @@
 
 encode gzip
 
+# Login de un solo usuario (Fase 8): protege toda la app, frontend y API por
+# igual, antes de que lleguen a los "handle" de abajo. BASIC_AUTH_USER y
+# BASIC_AUTH_HASH los pone docker-compose (deploy/.env); ver deploy/LEEME.md
+# para generar el hash.
+basic_auth {
+	{$BASIC_AUTH_USER} {$BASIC_AUTH_HASH}
+}
+
 # La API: todo lo que empiece por /api/ va al contenedor del backend.
 handle /api/* {
 	reverse_proxy backend:8000

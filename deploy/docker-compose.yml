@@ -36,8 +36,11 @@ services:
       args:
         VITE_API_URL: ""
     restart: unless-stopped
-    environment:
-      DOMAIN: ${DOMAIN:-localhost}
+    # env_file (no "environment: ${...}"): el hash de la contraseña (bcrypt)
+    # lleva "$" de por sí, y Compose intentaría interpretarlos como variables
+    # si pasaran por la interpolación de "environment:". Así se copian tal cual.
+    env_file:
+      - .env
     depends_on:
       - backend
     ports:

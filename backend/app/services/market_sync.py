@@ -93,7 +93,9 @@ def descargar_historial_completo(
     """Descarga los `YEARS_HISTORIAL_COMPLETO` años de histórico de precios y
     dividendos de todo el universo de empresas (IBEX 35 + Dow Jones + Nasdaq-100 +
     sueltas) y de los 3 índices de referencia. Marca `SyncStatus.descarga_completa_
-    en_progreso` mientras dura, para no lanzar dos a la vez."""
+    en_progreso` mientras dura, para no lanzar dos a la vez: si ya hay una en
+    marcha (botón de Ajustes o la tarea diaria de `app/jobs/scheduler.py`
+    coincidiendo en el tiempo), esta llamada no hace nada y vuelve al momento."""
     aviso = on_progreso or (lambda _mensaje: None)
     cerrar_db = db is None
     db = db or SessionLocal()
@@ -103,6 +105,12 @@ def descargar_historial_completo(
     resultado: dict = {"indices": {}, "empresas": {}, "errores": {}}
 
     estado = obtener_o_crear_estado(db)
+    if estado.descarga_completa_en_progreso:
+        aviso("Ya hay una descarga completa en marcha: se omite esta.")
+        if cerrar_db:
+            db.close()
+        return {"omitida": True}
+
     estado.descarga_completa_en_progreso = True
     estado.ultimo_error = None
     db.commit()

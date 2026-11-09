@@ -26,8 +26,5 @@ def lanzar_descarga_completa(tareas: BackgroundTasks, db: Session = Depends(get_
     if estado.descarga_completa_en_progreso:
         raise HTTPException(status_code=409, detail="Ya hay una descarga completa en marcha")
 
-    estado.descarga_completa_en_progreso = True
-    db.commit()
-
     tareas.add_task(descargar_historial_completo)
     return {"detail": "Descarga completa iniciada"}
