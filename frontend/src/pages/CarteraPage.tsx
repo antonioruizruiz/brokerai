@@ -39,7 +39,7 @@ const FORMULARIO_INICIAL: PortfolioEntryInput = {
 export function CarteraPage() {
   const queryClient = useQueryClient()
   const { data: cartera, isLoading, isError } = useQuery({ queryKey: ['cartera'], queryFn: getCartera })
-  const { data: empresas } = useQuery({ queryKey: ['companies'], queryFn: getCompanies })
+  const { data: empresas } = useQuery({ queryKey: ['companies'], queryFn: () => getCompanies() })
   const [formulario, setFormulario] = useState<PortfolioEntryInput>(FORMULARIO_INICIAL)
 
   const crear = useMutation({
