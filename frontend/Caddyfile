@@ -1,0 +1,21 @@
+# DOMAIN lo fija docker-compose (deploy/.env). Con "localhost" (valor por
+# defecto) Caddy sirve HTTP normal, útil para probar en local; en cuanto se
+# ponga aquí un dominio real, apuntando por DNS a este servidor, Caddy pide
+# solo él el certificado HTTPS a Let's Encrypt automáticamente.
+{$DOMAIN:localhost}
+
+encode gzip
+
+# La API: todo lo que empiece por /api/ va al contenedor del backend.
+handle /api/* {
+	reverse_proxy backend:8000
+}
+
+# El resto: el frontend ya compilado. try_files sirve index.html para
+# cualquier ruta que no sea un archivo real, necesario porque es una SPA
+# (React Router) y las rutas como /mercado/SAN.MC no existen como ficheros.
+handle {
+	root * /srv
+	try_files {path} /index.html
+	file_server
+}

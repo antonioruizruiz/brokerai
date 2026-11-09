@@ -55,11 +55,14 @@ broker/
 │   │   ├── models/              (SQLAlchemy: company, price, dividend, index_bar,
 │   │   │                         portfolio_entry, trading_settings)
 │   │   ├── services/            (market_data, scoring, recommendations, backtest,
-│   │   │                         portfolio, dividends, news, company_management)
-│   │   └── jobs/                (tarea diaria — todavía no existe, se crea en la Fase 8)
+│   │   │                         portfolio, dividends, news, company_management, market_sync)
+│   │   └── jobs/scheduler.py    (APScheduler: actualización horaria de precios)
+│   ├── Dockerfile / .dockerignore
 │   └── tests/                  (pytest, un archivo por endpoint/servicio)
 ├── frontend/            (Vite + React + TS; página propia por cada sección del menú)
-└── deploy/              (LEEME.md; docker-compose y Caddyfile pendientes — Fase 8)
+│   ├── Dockerfile        (build estático + Caddy)
+│   └── Caddyfile         (sirve el frontend y reenvía /api/* al backend; HTTPS automático con DOMAIN)
+└── deploy/              (LEEME.md, docker-compose.yml, .env.example — Fase 8)
 ```
 
 ## Convenciones
