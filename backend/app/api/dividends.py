@@ -34,6 +34,7 @@ def get_dividendos(indice: str | None = None, db: Session = Depends(get_db)):
                 "sector": company.sector,
                 "indice": company.indice,
                 "moneda": company.moneda,
+                "activa": company.activa,
                 "last_price": last_price,
                 **resumen_dividendos(dividendos, last_price),
             }

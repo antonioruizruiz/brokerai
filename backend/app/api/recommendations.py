@@ -39,6 +39,7 @@ def get_recomendaciones(indice: str | None = None, db: Session = Depends(get_db)
             "sector": company.sector,
             "indice": company.indice,
             "moneda": company.moneda,
+            "activa": company.activa,
             **resultado,
         }
         if fila.pop("vigilancia", False):

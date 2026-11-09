@@ -119,7 +119,7 @@ def descargar_historial_completo(
                 resultado["errores"][indice] = str(exc)
                 aviso(f"ERROR en {indice}: {exc}")
 
-        empresas = db.query(Company).order_by(Company.ticker).all()
+        empresas = db.query(Company).filter(Company.activa.is_(True)).order_by(Company.ticker).all()
         for i, company in enumerate(empresas, start=1):
             ticker = company.ticker
             aviso(f"[{i}/{len(empresas)}] {ticker} ({company.name})...")
@@ -185,7 +185,7 @@ def actualizar_valores_recientes(
             if pausa_entre_valores_segundos:
                 time.sleep(pausa_entre_valores_segundos)
 
-        empresas = db.query(Company).order_by(Company.ticker).all()
+        empresas = db.query(Company).filter(Company.activa.is_(True)).order_by(Company.ticker).all()
         for company in empresas:
             ticker = company.ticker
             ultima = db.query(func.max(PriceBar.date)).filter(PriceBar.ticker == ticker).scalar()

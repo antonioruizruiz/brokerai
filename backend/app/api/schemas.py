@@ -12,6 +12,7 @@ class CompanyOut(BaseModel):
     sector: str
     indice: str | None = None
     moneda: str = "EUR"
+    activa: bool = True
     last_price: float | None = None
     change_pct: float | None = None
     last_price_date: date | None = None
@@ -22,6 +23,10 @@ class CompanyCreateIn(BaseModel):
     name: str
     sector: str
     moneda: str = "EUR"
+
+
+class CompanyActivaIn(BaseModel):
+    activa: bool
 
 
 class NewsItemOut(BaseModel):
@@ -55,6 +60,7 @@ class RankingItemOut(BaseModel):
     sector: str
     indice: str | None = None
     moneda: str = "EUR"
+    activa: bool = True
     momentum: float | None = None
     tendencia: float | None = None
     estabilidad: float | None = None
@@ -70,6 +76,7 @@ class RecomendacionOut(BaseModel):
     sector: str
     indice: str | None = None
     moneda: str = "EUR"
+    activa: bool = True
     regla: str
     motivo: str
     entrada: float
@@ -87,6 +94,7 @@ class VigilanciaOut(BaseModel):
     sector: str
     indice: str | None = None
     moneda: str = "EUR"
+    activa: bool = True
     regla: str
     motivo: str
 
@@ -181,6 +189,7 @@ class DividendoResumenOut(BaseModel):
     sector: str
     indice: str | None = None
     moneda: str = "EUR"
+    activa: bool = True
     last_price: float | None = None
     rentabilidad_pct: float | None = None
     total_ultimo_anio_euros: float | None = None

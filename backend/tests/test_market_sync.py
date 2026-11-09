@@ -102,3 +102,23 @@ def test_actualizacion_horaria_refresca_la_vela_de_hoy_y_no_toca_empresas_sin_hi
 
     estado = db_aislada.query(SyncStatus).filter(SyncStatus.id == 1).first()
     assert estado.ultima_actualizacion_horaria is not None
+
+
+def test_empresas_inactivas_se_saltan_en_ambos_modos(db_aislada):
+    san = db_aislada.query(Company).filter(Company.ticker == "SAN.MC").one()
+    san.activa = False
+    db_aislada.commit()
+
+    resultado_completo = descargar_historial_completo(db=db_aislada, provider=_ProviderFijo(), pausa_entre_valores_segundos=0)
+    assert "SAN.MC" not in resultado_completo["empresas"]
+    assert db_aislada.query(PriceBar).filter(PriceBar.ticker == "SAN.MC").count() == 0
+
+    # Si ya tenía histórico previo, la actualización horaria tampoco debe tocarlo.
+    db_aislada.add(PriceBar(ticker="SAN.MC", date=date(2024, 1, 2), open=1, high=1, low=1, close=1, volume=1))
+    db_aislada.commit()
+
+    resultado_horaria = actualizar_valores_recientes(db=db_aislada, provider=_ProviderFijo(precio_cierre=99.0), pausa_entre_valores_segundos=0)
+    assert "SAN.MC" not in resultado_horaria["errores"]
+    velas_san = db_aislada.query(PriceBar).filter(PriceBar.ticker == "SAN.MC").all()
+    assert len(velas_san) == 1
+    assert velas_san[0].close == 1  # no se ha refrescado: sigue con el valor sembrado a mano

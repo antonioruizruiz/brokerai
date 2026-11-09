@@ -81,7 +81,6 @@ NASDAQ100 = [
     {"ticker": "BIIB", "name": "Biogen", "sector": "Salud", "moneda": "USD"},
     {"ticker": "ON", "name": "ON Semiconductor", "sector": "Tecnología", "moneda": "USD"},
     {"ticker": "TTD", "name": "The Trade Desk", "sector": "Tecnología", "moneda": "USD"},
-    {"ticker": "ANSS", "name": "ANSYS", "sector": "Tecnología", "moneda": "USD"},
     {"ticker": "ZS", "name": "Zscaler", "sector": "Tecnología", "moneda": "USD"},
     {"ticker": "GFS", "name": "GlobalFoundries", "sector": "Tecnología", "moneda": "USD"},
     {"ticker": "CSGP", "name": "CoStar Group", "sector": "Inmobiliario", "moneda": "USD"},
@@ -105,6 +104,5 @@ NASDAQ100 = [
     {"ticker": "EBAY", "name": "eBay", "sector": "Consumo", "moneda": "USD"},
     {"ticker": "GEN", "name": "Gen Digital", "sector": "Tecnología", "moneda": "USD"},
     {"ticker": "VRSN", "name": "VeriSign", "sector": "Tecnología", "moneda": "USD"},
-    {"ticker": "WBA", "name": "Walgreens Boots Alliance", "sector": "Consumo", "moneda": "USD"},
     {"ticker": "SIRI", "name": "Sirius XM Holdings", "sector": "Tecnología", "moneda": "USD"},
 ]

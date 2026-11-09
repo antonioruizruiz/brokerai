@@ -1,13 +1,30 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 
 import { PriceChart } from '@/components/PriceChart'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { getCompanyNews, getCompanyPrices } from '@/lib/api'
+import { actualizarActivaEmpresa, getCompany, getCompanyNews, getCompanyPrices } from '@/lib/api'
 import { formatDate } from '@/lib/format'
 
 export function CompanyDetailPage() {
   const { ticker = '' } = useParams()
+  const queryClient = useQueryClient()
+
+  const { data: empresa } = useQuery({
+    queryKey: ['company', ticker],
+    queryFn: () => getCompany(ticker),
+    enabled: ticker.length > 0,
+  })
+
+  const activaMutacion = useMutation({
+    mutationFn: (activa: boolean) => actualizarActivaEmpresa(ticker, activa),
+    onSuccess: (actualizada) => {
+      queryClient.setQueryData(['company', ticker], actualizada)
+      // También afecta a Mercado/Ranking/Hoy/Dividendos (muestran el estado activa/inactiva).
+      queryClient.invalidateQueries()
+    },
+  })
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['prices', ticker],
@@ -31,8 +48,34 @@ export function CompanyDetailPage() {
         <Link to="/mercado" className="text-sm text-primary">
           ← Volver a Mercado
         </Link>
-        <h1 className="text-2xl font-semibold">{ticker}</h1>
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-semibold">{ticker}</h1>
+          {empresa && !empresa.activa && (
+            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+              Inactiva
+            </span>
+          )}
+        </div>
         <p className="text-sm text-muted-foreground">Precio histórico con medias de 50 y 200 sesiones.</p>
+        {empresa && (
+          <div className="mt-2 flex items-center gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={activaMutacion.isPending}
+              onClick={() => activaMutacion.mutate(!empresa.activa)}
+            >
+              {empresa.activa ? 'Marcar como inactiva' : 'Reactivar'}
+            </Button>
+            {empresa.activa === false && (
+              <span className="text-xs text-muted-foreground">
+                No se le intentará descargar precio nuevo, pero conserva todo su histórico.
+              </span>
+            )}
+            {activaMutacion.isError && <span className="text-xs text-danger">No se ha podido actualizar.</span>}
+          </div>
+        )}
       </div>
 
       <Card>

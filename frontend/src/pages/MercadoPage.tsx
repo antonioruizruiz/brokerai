@@ -55,7 +55,14 @@ export function MercadoPage() {
                       {company.ticker}
                     </Link>
                   </td>
-                  <td className="px-5 py-3">{company.name}</td>
+                  <td className="px-5 py-3">
+                    {company.name}
+                    {!company.activa && (
+                      <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                        Inactiva
+                      </span>
+                    )}
+                  </td>
                   <td className="px-5 py-3 text-muted-foreground">{company.sector}</td>
                   <td className="px-5 py-3 text-right">
                     {company.last_price != null ? formatPrecio(company.last_price, company.moneda) : '—'}

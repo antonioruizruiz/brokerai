@@ -54,6 +54,11 @@ export function HoyPage() {
                       </Link>
                       <span className="ml-2 text-muted-foreground">{rec.name}</span>
                       <span className="ml-2 text-xs text-muted-foreground">· {rec.sector}</span>
+                      {!rec.activa && (
+                        <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                          Inactiva
+                        </span>
+                      )}
                     </div>
                     <span className={cn('rounded-full px-2.5 py-0.5 text-xs font-medium', COLOR_RIESGO[rec.riesgo])}>
                       Riesgo {rec.riesgo}
@@ -111,6 +116,11 @@ export function HoyPage() {
                     {v.ticker}
                   </Link>
                   <span className="text-muted-foreground">{v.name}</span>
+                  {!v.activa && (
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                      Inactiva
+                    </span>
+                  )}
                   <span className="text-sm">— {v.regla}:</span>
                   <span className="text-sm text-muted-foreground">{v.motivo}</span>
                 </div>

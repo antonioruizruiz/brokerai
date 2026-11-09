@@ -156,6 +156,11 @@ export function RankingPage() {
                       {fila.ticker}
                     </Link>
                     <span className="ml-2 text-muted-foreground">{fila.name}</span>
+                    {!fila.activa && (
+                      <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                        Inactiva
+                      </span>
+                    )}
                   </td>
                   <td className="px-5 py-3 text-muted-foreground">{fila.sector}</td>
                   <td className="px-5 py-3 text-right font-semibold tabular-nums">

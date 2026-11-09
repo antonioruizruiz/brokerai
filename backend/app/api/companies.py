@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.api.filters import filtrar_por_indice
-from app.api.schemas import CompanyCreateIn, CompanyOut, NewsItemOut, PriceBarOut
+from app.api.schemas import CompanyActivaIn, CompanyCreateIn, CompanyOut, NewsItemOut, PriceBarOut
 from app.core.db import get_db
 from app.models.company import Company
 from app.models.price import PriceBar
@@ -34,6 +34,7 @@ def _company_out(db: Session, company: Company) -> dict:
         "sector": company.sector,
         "indice": company.indice,
         "moneda": company.moneda,
+        "activa": company.activa,
         "last_price": last_price,
         "change_pct": change_pct,
         "last_price_date": last_price_date,
@@ -62,6 +63,30 @@ def crear_empresa_suelta(datos: CompanyCreateIn, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=str(exc))
 
     return _company_out(db, db.get(Company, ticker))
+
+
+@router.get("/companies/{ticker}", response_model=CompanyOut)
+def get_company(ticker: str, db: Session = Depends(get_db)):
+    """Ficha de una empresa (con su último precio y variación), para la página de detalle."""
+    company = db.get(Company, ticker)
+    if company is None:
+        raise HTTPException(status_code=404, detail="Empresa no encontrada")
+    return _company_out(db, company)
+
+
+@router.patch("/companies/{ticker}", response_model=CompanyOut)
+def actualizar_activa(ticker: str, datos: CompanyActivaIn, db: Session = Depends(get_db)):
+    """Marca una empresa como activa/inactiva (p. ej. tras una fusión o exclusión de
+    bolsa). Vale para cualquier empresa, de índice o suelta: a diferencia de borrarla,
+    conserva todo su histórico (Cartera, Fiabilidad) y solo evita que la sincronización
+    de precios (`app/services/market_sync.py`) siga intentando descargarle datos nuevos."""
+    company = db.get(Company, ticker)
+    if company is None:
+        raise HTTPException(status_code=404, detail="Empresa no encontrada")
+    company.activa = datos.activa
+    db.commit()
+    db.refresh(company)
+    return _company_out(db, company)
 
 
 @router.delete("/companies/{ticker}", status_code=204)

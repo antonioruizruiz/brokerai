@@ -58,6 +58,7 @@ def compute_ranking(db: Session, indice: str | None = None) -> list[dict]:
             "sector": company.sector,
             "indice": company.indice,
             "moneda": company.moneda,
+            "activa": company.activa,
         }
         fila.update(raw if raw is not None else CAMPOS_RAW_VACIOS)
         filas.append(fila)

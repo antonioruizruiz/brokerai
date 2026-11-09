@@ -6,6 +6,7 @@ export interface Company {
   sector: string
   indice: string | null
   moneda: string
+  activa: boolean
   last_price: number | null
   change_pct: number | null
   last_price_date: string | null
@@ -46,6 +47,7 @@ export interface RankingItem {
   sector: string
   indice: string | null
   moneda: string
+  activa: boolean
   momentum: number | null
   tendencia: number | null
   estabilidad: number | null
@@ -76,6 +78,7 @@ export interface Recomendacion {
   sector: string
   indice: string | null
   moneda: string
+  activa: boolean
   regla: string
   motivo: string
   entrada: number
@@ -93,6 +96,7 @@ export interface Vigilancia {
   sector: string
   indice: string | null
   moneda: string
+  activa: boolean
   regla: string
   motivo: string
 }
@@ -196,6 +200,7 @@ export interface DividendoResumen {
   sector: string
   indice: string | null
   moneda: string
+  activa: boolean
   last_price: number | null
   rentabilidad_pct: number | null
   total_ultimo_anio_euros: number | null
@@ -225,6 +230,19 @@ async function put<T>(path: string, body: unknown): Promise<T> {
   })
   if (!res.ok) {
     throw new Error(`Error ${res.status} al llamar a ${path}`)
+  }
+  return res.json() as Promise<T>
+}
+
+async function patch<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${API_URL}${path}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) {
+    const detalle = await res.json().catch(() => null)
+    throw new Error(detalle?.detail ?? `Error ${res.status} al llamar a ${path}`)
   }
   return res.json() as Promise<T>
 }
@@ -260,6 +278,14 @@ export function getCompanies(indice?: string | null): Promise<Company[]> {
 
 export function crearEmpresaSuelta(datos: CompanyCreateInput): Promise<Company> {
   return post<Company>('/api/companies', datos)
+}
+
+export function getCompany(ticker: string): Promise<Company> {
+  return get<Company>(`/api/companies/${ticker}`)
+}
+
+export function actualizarActivaEmpresa(ticker: string, activa: boolean): Promise<Company> {
+  return patch<Company>(`/api/companies/${ticker}`, { activa })
 }
 
 export function borrarEmpresaSuelta(ticker: string): Promise<void> {
