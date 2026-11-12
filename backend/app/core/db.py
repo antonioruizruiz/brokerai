@@ -3,7 +3,7 @@ from pathlib import Path
 
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
@@ -24,14 +24,16 @@ def get_db():
         db.close()
 
 
-def _run_migrations() -> None:
-    """Deja el esquema de la BD al día aplicando las migraciones de Alembic
-    (`backend/alembic/versions/`). Sustituye a `Base.metadata.create_all`: así, un
-    cambio de modelo futuro no obliga a borrar la base de datos, solo a generar una
-    migración nueva (`alembic revision --autogenerate -m "..."`) y aplicarla."""
+def _alembic_config() -> Config:
     cfg = Config(str(BACKEND_DIR / "alembic.ini"))
     cfg.set_main_option("script_location", str(BACKEND_DIR / "alembic"))
     cfg.set_main_option("sqlalchemy.url", settings.database_url)
+    return cfg
+
+
+def _run_migrations() -> None:
+    """Aplica las migraciones pendientes de `backend/alembic/versions/`."""
+    cfg = _alembic_config()
     command.upgrade(cfg, "head")
 
 
@@ -43,7 +45,14 @@ def init_db() -> None:
     if settings.database_url.startswith("sqlite:///./"):
         Path(settings.database_url.removeprefix("sqlite:///./")).parent.mkdir(parents=True, exist_ok=True)
 
-    _run_migrations()
+    if not inspect(engine).get_table_names():
+        from app.models import Base
+
+        Base.metadata.create_all(bind=engine)
+        command.stamp(_alembic_config(), "head")
+    else:
+        _run_migrations()
+
     _seed_companies_que_falten()
     _seed_trading_settings_if_empty()
     _seed_sync_status_if_empty()

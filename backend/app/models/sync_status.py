@@ -19,6 +19,9 @@ class SyncStatus(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, default=1)
     descarga_completa_en_progreso: Mapped[bool] = mapped_column(default=False)
+    descarga_id: Mapped[Optional[str]] = mapped_column(default=None)
+    descarga_recuento_precios: Mapped[int] = mapped_column(default=0)
+    descarga_ultimo_avance: Mapped[Optional[datetime]] = mapped_column(default=None)
     ultima_descarga_completa: Mapped[Optional[datetime]] = mapped_column(default=None)
     ultima_actualizacion_horaria: Mapped[Optional[datetime]] = mapped_column(default=None)
     ultimo_error: Mapped[Optional[str]] = mapped_column(default=None)

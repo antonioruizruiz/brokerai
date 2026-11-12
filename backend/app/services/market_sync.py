@@ -13,6 +13,7 @@ from __future__ import annotations
 import time
 from datetime import date, datetime, timedelta, timezone
 from typing import Callable
+from uuid import uuid4
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -27,6 +28,7 @@ from app.services.market_data import MarketDataProvider, YFinanceProvider
 
 YEARS_HISTORIAL_COMPLETO = 10
 PAUSA_ENTRE_VALORES_SEGUNDOS = 1  # para no saturar a Yahoo Finance
+MINUTOS_SIN_AVANCE_DESCARGA = 5
 
 # Días hacia atrás que se vuelven a pedir en la actualización horaria: permite que
 # la vela de "hoy" se refresque varias veces mientras el mercado sigue abierto, y
@@ -35,6 +37,59 @@ DIAS_SOLAPE_ACTUALIZACION = 5
 
 # Ticker de Yahoo Finance del propio índice, por cada índice que seguimos (Fase 5: comparar el backtest).
 TICKERS_INDICES = {"IBEX35": "^IBEX", "DOWJONES": "^DJI", "NASDAQ100": "^NDX"}
+
+
+def _ahora_utc_sin_zona() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
+def _contar_precios(db: Session) -> int:
+    return db.query(func.count(PriceBar.id)).scalar() or 0
+
+
+def comprobar_descarga_atascada(db: Session, ahora: datetime | None = None) -> bool:
+    """Libera una descarga si no aumenta el número de velas durante cinco minutos."""
+    estado = obtener_o_crear_estado(db)
+    if not estado.descarga_completa_en_progreso:
+        return False
+
+    ahora = ahora or _ahora_utc_sin_zona()
+    recuento = _contar_precios(db)
+    if estado.descarga_ultimo_avance is None:
+        estado.descarga_recuento_precios = recuento
+        estado.descarga_ultimo_avance = ahora
+        db.commit()
+        return False
+
+    if recuento > estado.descarga_recuento_precios:
+        estado.descarga_recuento_precios = recuento
+        estado.descarga_ultimo_avance = ahora
+        db.commit()
+        return False
+
+    if ahora - estado.descarga_ultimo_avance < timedelta(minutes=MINUTOS_SIN_AVANCE_DESCARGA):
+        return False
+
+    estado.descarga_completa_en_progreso = False
+    estado.descarga_id = None
+    estado.ultimo_error = "Descarga liberada automáticamente: no aumentó el histórico durante 5 minutos."
+    db.commit()
+    return True
+
+
+def _descarga_sigue_activa(db: Session, estado: SyncStatus, descarga_id: str) -> bool:
+    db.refresh(estado)
+    return estado.descarga_completa_en_progreso and estado.descarga_id == descarga_id
+
+
+def _registrar_avance_descarga(db: Session, estado: SyncStatus, descarga_id: str) -> None:
+    if not _descarga_sigue_activa(db, estado, descarga_id):
+        return
+    recuento = _contar_precios(db)
+    if recuento > estado.descarga_recuento_precios:
+        estado.descarga_recuento_precios = recuento
+        estado.descarga_ultimo_avance = _ahora_utc_sin_zona()
+        db.commit()
 
 
 def obtener_o_crear_estado(db: Session) -> SyncStatus:
@@ -104,6 +159,7 @@ def descargar_historial_completo(
     inicio = date(hoy.year - YEARS_HISTORIAL_COMPLETO, hoy.month, hoy.day)
     resultado: dict = {"indices": {}, "empresas": {}, "errores": {}}
 
+    comprobar_descarga_atascada(db)
     estado = obtener_o_crear_estado(db)
     if estado.descarga_completa_en_progreso:
         aviso("Ya hay una descarga completa en marcha: se omite esta.")
@@ -111,15 +167,25 @@ def descargar_historial_completo(
             db.close()
         return {"omitida": True}
 
+    descarga_id = uuid4().hex
     estado.descarga_completa_en_progreso = True
+    estado.descarga_id = descarga_id
+    estado.descarga_recuento_precios = _contar_precios(db)
+    estado.descarga_ultimo_avance = _ahora_utc_sin_zona()
     estado.ultimo_error = None
     db.commit()
 
     try:
         for indice, ticker_indice in TICKERS_INDICES.items():
+            if not _descarga_sigue_activa(db, estado, descarga_id):
+                resultado["cancelada"] = True
+                return resultado
             aviso(f"[índice] {indice} ({ticker_indice})...")
             try:
                 velas = provider.get_history(ticker_indice, start=inicio)
+                if not _descarga_sigue_activa(db, estado, descarga_id):
+                    resultado["cancelada"] = True
+                    return resultado
                 resultado["indices"][indice] = upsert_index(db, indice, velas)
                 db.commit()
             except Exception as exc:
@@ -129,6 +195,9 @@ def descargar_historial_completo(
 
         empresas = db.query(Company).filter(Company.activa.is_(True)).order_by(Company.ticker).all()
         for i, company in enumerate(empresas, start=1):
+            if not _descarga_sigue_activa(db, estado, descarga_id):
+                resultado["cancelada"] = True
+                return resultado
             ticker = company.ticker
             aviso(f"[{i}/{len(empresas)}] {ticker} ({company.name})...")
             try:
@@ -139,13 +208,22 @@ def descargar_historial_completo(
                 aviso(f"ERROR en {ticker}: {exc}")
                 continue
 
+            if not _descarga_sigue_activa(db, estado, descarga_id):
+                resultado["cancelada"] = True
+                return resultado
+
             n_precios = upsert_prices(db, ticker, precios)
             n_dividendos = upsert_dividends(db, ticker, dividendos)
             db.commit()
+            _registrar_avance_descarga(db, estado, descarga_id)
             resultado["empresas"][ticker] = {"precios_nuevos": n_precios, "dividendos_nuevos": n_dividendos}
 
             if pausa_entre_valores_segundos:
                 time.sleep(pausa_entre_valores_segundos)
+
+        if not _descarga_sigue_activa(db, estado, descarga_id):
+            resultado["cancelada"] = True
+            return resultado
 
         estado.ultima_descarga_completa = datetime.now(timezone.utc)
         if resultado["errores"]:
@@ -153,12 +231,63 @@ def descargar_historial_completo(
         db.commit()
         aviso("Descarga completada.")
     finally:
-        estado.descarga_completa_en_progreso = False
-        db.commit()
+        db.rollback()
+        db.refresh(estado)
+        if estado.descarga_id == descarga_id:
+            estado.descarga_completa_en_progreso = False
+            estado.descarga_id = None
+            estado.descarga_ultimo_avance = None
+            db.commit()
         if cerrar_db:
             db.close()
 
     return resultado
+
+
+def actualizar_empresa(
+    ticker: str,
+    db: Session | None = None,
+    provider: MarketDataProvider | None = None,
+) -> dict:
+    """Refresca precios y dividendos de un ticker sin tocar el resto del universo."""
+    cerrar_db = db is None
+    db = db or SessionLocal()
+    provider = provider or YFinanceProvider()
+
+    try:
+        company = db.query(Company).filter(Company.ticker == ticker).first()
+        if company is None:
+            raise LookupError(f"Empresa no encontrada: {ticker}")
+
+        ultima = db.query(func.max(PriceBar.date)).filter(PriceBar.ticker == ticker).scalar()
+        hoy = date.today()
+        inicio = (
+            ultima - timedelta(days=DIAS_SOLAPE_ACTUALIZACION)
+            if ultima is not None
+            else date(hoy.year - YEARS_HISTORIAL_COMPLETO, hoy.month, hoy.day)
+        )
+
+        precios = provider.get_history(ticker, start=inicio)
+        dividendos = provider.get_dividends(ticker, start=inicio)
+
+        if ultima is None:
+            precios_actualizados = upsert_prices(db, ticker, precios)
+        else:
+            precios_actualizados = _reemplazar_precios(db, ticker, precios, inicio)
+        dividendos_nuevos = upsert_dividends(db, ticker, dividendos)
+        db.commit()
+        return {
+            "ticker": ticker,
+            "precios_actualizados": precios_actualizados,
+            "dividendos_nuevos": dividendos_nuevos,
+            "desde": inicio.isoformat(),
+        }
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        if cerrar_db:
+            db.close()
 
 
 def actualizar_valores_recientes(

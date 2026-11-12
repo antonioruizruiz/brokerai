@@ -8,8 +8,44 @@ Docker Compose con tres servicios:
   `/api/*` hacia `backend` y de servidor HTTPS (certificado automático de Let's Encrypt en cuanto le pongas un
   dominio real en `DOMAIN`).
 
-Solo `frontend` (puertos 80/443) queda accesible desde fuera. `backend` y `db` solo son visibles dentro de la
-red interna de Docker (o por túnel SSH a `127.0.0.1:8000`, para depurar con `/docs`), tal y como pide CLAUDE.md.
+Solo `frontend` (puertos 80/443) queda accesible desde fuera. `backend` (8000) y `db` (puerto local 5435) se
+publican exclusivamente en `127.0.0.1`, por lo que no quedan accesibles desde otros equipos. Se usa 5435 para
+no interferir con posibles instalaciones locales que ya ocupen el 5432. Dentro de Docker el backend sigue
+conectando a `db:5432`; desde el backend ejecutado localmente, el lanzador usa `localhost:5435`.
+
+## Desarrollo local con Postgres en Docker
+
+Este modo ejecuta solo Postgres en Docker y arranca el backend y el frontend con sus comandos de desarrollo.
+No levantes a la vez los servicios `backend` y `frontend` del Compose: ocuparían los mismos puertos locales.
+
+Prepara `deploy/.env` y establece `POSTGRES_PASSWORD`. Si ya existe el volumen `db_data`, conserva la contraseña
+con la que se creó; cambiarla en el archivo no cambia la contraseña dentro de una base ya inicializada. No hace
+falta configurar el hash de acceso si solo vas a iniciar `db`.
+
+```bash
+cd /mnt/d/GIT/proyectos_propios/broker/deploy
+cp .env.example .env        # solo la primera vez
+docker compose up -d db
+```
+
+Arranca el backend desde `backend/`. El lanzador toma la contraseña de `deploy/.env`, la codifica para la URL y
+fuerza la conexión a `localhost:5435` aunque la terminal tenga otra variable `DATABASE_URL`:
+
+```bash
+cd /mnt/d/GIT/proyectos_propios/broker/backend
+bash run_local.sh
+```
+
+En otra terminal, prepara `frontend/.env` desde su ejemplo (ya apunta a `http://localhost:8000`) y arranca Vite:
+
+```bash
+cd /mnt/d/GIT/proyectos_propios/broker/frontend
+cp .env.example .env        # solo la primera vez
+npm run dev
+```
+
+Abre `http://localhost:5173`. Para detener Postgres sin borrar sus datos: `docker compose stop db`. Los datos
+siguen guardados en el volumen `db_data`.
 
 ## Probarlo en local (sin VPS ni dominio todavía)
 

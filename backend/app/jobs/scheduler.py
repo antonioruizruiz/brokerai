@@ -19,7 +19,12 @@ from zoneinfo import ZoneInfo
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-from app.services.market_sync import actualizar_valores_recientes, descargar_historial_completo
+from app.core.db import SessionLocal
+from app.services.market_sync import (
+    actualizar_valores_recientes,
+    comprobar_descarga_atascada,
+    descargar_historial_completo,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +49,17 @@ def _job_descarga_diaria() -> None:
         logger.exception("Fallo en la descarga diaria del histórico completo")
 
 
+def _job_vigilar_descarga() -> None:
+    db = SessionLocal()
+    try:
+        if comprobar_descarga_atascada(db):
+            logger.warning("Descarga completa liberada por falta de avance durante 5 minutos")
+    except Exception:
+        logger.exception("Fallo al comprobar el avance de la descarga completa")
+    finally:
+        db.close()
+
+
 def iniciar_scheduler() -> None:
     if not scheduler.running:
         scheduler.add_job(
@@ -57,6 +73,13 @@ def iniciar_scheduler() -> None:
             _job_descarga_diaria,
             CronTrigger(hour=23, minute=0, timezone=MADRID),
             id="descarga_diaria",
+            replace_existing=True,
+        )
+        scheduler.add_job(
+            _job_vigilar_descarga,
+            "interval",
+            minutes=1,
+            id="vigilar_descarga",
             replace_existing=True,
         )
         scheduler.start()

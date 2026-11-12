@@ -343,3 +343,18 @@ export function getSyncEstado(): Promise<SyncEstado> {
 export function lanzarDescargaCompleta(): Promise<{ detail: string }> {
   return post<{ detail: string }>('/api/sync/descarga-completa', {})
 }
+
+export function desbloquearDescarga(): Promise<{ detail: string }> {
+  return post<{ detail: string }>('/api/sync/desbloquear', {})
+}
+
+export interface ResultadoActualizacionEmpresa {
+  ticker: string
+  precios_actualizados: number
+  dividendos_nuevos: number
+  desde: string
+}
+
+export function actualizarDatosEmpresa(ticker: string): Promise<ResultadoActualizacionEmpresa> {
+  return post<ResultadoActualizacionEmpresa>(`/api/sync/empresa/${ticker}/actualizar`, {})
+}

@@ -4,7 +4,13 @@ import { Link, useParams } from 'react-router-dom'
 import { PriceChart } from '@/components/PriceChart'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { actualizarActivaEmpresa, getCompany, getCompanyNews, getCompanyPrices } from '@/lib/api'
+import {
+  actualizarActivaEmpresa,
+  actualizarDatosEmpresa,
+  getCompany,
+  getCompanyNews,
+  getCompanyPrices,
+} from '@/lib/api'
 import { formatDate, formatPct, formatPrecio } from '@/lib/format'
 import { calcularResumenCotizacion } from '@/lib/retornos'
 import { cn } from '@/lib/utils'
@@ -25,6 +31,14 @@ export function CompanyDetailPage() {
       queryClient.setQueryData(['company', ticker], actualizada)
       // También afecta a Mercado/Ranking/Hoy/Dividendos (muestran el estado activa/inactiva).
       queryClient.invalidateQueries()
+    },
+  })
+
+  const datosMutacion = useMutation({
+    mutationFn: () => actualizarDatosEmpresa(ticker),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['prices', ticker] })
+      queryClient.invalidateQueries({ queryKey: ['company', ticker] })
     },
   })
 
@@ -67,6 +81,15 @@ export function CompanyDetailPage() {
               type="button"
               variant="outline"
               size="sm"
+              disabled={datosMutacion.isPending}
+              onClick={() => datosMutacion.mutate()}
+            >
+              {datosMutacion.isPending ? 'Actualizando...' : 'Actualizar datos'}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
               disabled={activaMutacion.isPending}
               onClick={() => activaMutacion.mutate(!empresa.activa)}
             >
@@ -79,6 +102,15 @@ export function CompanyDetailPage() {
             )}
             {activaMutacion.isError && <span className="text-xs text-danger">No se ha podido actualizar.</span>}
           </div>
+        )}
+        {datosMutacion.isSuccess && (
+          <p className="mt-2 text-xs text-success">
+            Datos actualizados: {datosMutacion.data.precios_actualizados} precios y{' '}
+            {datosMutacion.data.dividendos_nuevos} dividendos nuevos.
+          </p>
+        )}
+        {datosMutacion.isError && (
+          <p className="mt-2 text-xs text-danger">{datosMutacion.error.message || 'No se pudieron actualizar los datos.'}</p>
         )}
       </div>
 

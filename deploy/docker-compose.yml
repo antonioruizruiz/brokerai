@@ -6,6 +6,8 @@ services:
       POSTGRES_USER: broker
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: broker
+    ports:
+      - "127.0.0.1:5435:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:

@@ -1,6 +1,6 @@
 from datetime import date
 
-from sqlalchemy import UniqueConstraint
+from sqlalchemy import BigInteger, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -27,4 +27,4 @@ class IndexBar(Base):
     high: Mapped[float]
     low: Mapped[float]
     close: Mapped[float]
-    volume: Mapped[int]
+    volume: Mapped[int] = mapped_column(BigInteger)

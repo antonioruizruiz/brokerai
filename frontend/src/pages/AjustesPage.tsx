@@ -3,7 +3,14 @@ import { useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { getSettings, getSyncEstado, lanzarDescargaCompleta, updateSettings, type TradingSettings } from '@/lib/api'
+import {
+  desbloquearDescarga,
+  getSettings,
+  getSyncEstado,
+  lanzarDescargaCompleta,
+  updateSettings,
+  type TradingSettings,
+} from '@/lib/api'
 import { formatDateTime } from '@/lib/format'
 
 const CAMPOS: { clave: keyof TradingSettings; etiqueta: string; ayuda: string; sufijo: string }[] = [
@@ -66,6 +73,11 @@ export function AjustesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sync-estado'] })
     },
+  })
+
+  const desbloquearMutacion = useMutation({
+    mutationFn: desbloquearDescarga,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['sync-estado'] }),
   })
 
   return (
@@ -163,6 +175,37 @@ export function AjustesPage() {
             )}
             {descargaMutacion.isError && <span className="text-sm text-danger">No se ha podido iniciar.</span>}
           </div>
+          {syncEstado?.descarga_completa_en_progreso && (
+            <div className="space-y-2 border-t border-border pt-3">
+              <p className="text-xs text-muted-foreground">
+                Si la descarga se quedó atascada, detén primero el backend y vuelve a arrancarlo. Después puedes
+                liberar aquí el bloqueo. No lo hagas si la descarga sigue activa.
+              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={desbloquearMutacion.isPending}
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        'Confirma que ya detuviste el backend anterior y que la descarga no sigue activa. ¿Liberar el bloqueo?',
+                      )
+                    ) {
+                      desbloquearMutacion.mutate()
+                    }
+                  }}
+                >
+                  {desbloquearMutacion.isPending ? 'Liberando...' : 'Liberar bloqueo atascado'}
+                </Button>
+                {desbloquearMutacion.isError && (
+                  <span className="text-sm text-danger">
+                    {desbloquearMutacion.error.message || 'No se ha podido liberar el bloqueo.'}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

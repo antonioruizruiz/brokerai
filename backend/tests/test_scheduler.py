@@ -9,7 +9,7 @@ def test_iniciar_scheduler_registra_las_dos_tareas():
         scheduler_mod.iniciar_scheduler()
 
         ids = {job.id for job in scheduler_mod.scheduler.get_jobs()}
-        assert ids == {"actualizacion_horaria", "descarga_diaria"}
+        assert ids == {"actualizacion_horaria", "descarga_diaria", "vigilar_descarga"}
 
         job_diaria = scheduler_mod.scheduler.get_job("descarga_diaria")
         assert str(job_diaria.trigger.timezone) == "Europe/Madrid"

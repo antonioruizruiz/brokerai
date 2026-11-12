@@ -27,6 +27,19 @@ def test_prices_returns_data(db_session):
     assert data[0]["close"] == 9.2
 
 
+def test_prices_acepta_volumen_superior_a_entero_32_bits(db_session):
+    volumen = 2_175_344_000
+    db_session.add(
+        PriceBar(ticker="NVDA", date=date(2024, 1, 2), open=1, high=1, low=1, close=1, volume=volumen)
+    )
+    db_session.commit()
+
+    r = client.get("/api/companies/NVDA/prices")
+
+    assert r.status_code == 200
+    assert r.json()[0]["volume"] == volumen
+
+
 def test_prices_filtra_por_desde(db_session):
     db_session.add_all(
         [

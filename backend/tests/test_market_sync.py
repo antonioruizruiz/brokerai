@@ -5,7 +5,7 @@ toca el histórico de TODO el universo de empresas, así que no puede compartir 
 base de datos (`db_session`) que usan el resto de tests (p. ej. `test_prices.py`,
 `test_ranking_endpoint.py`), o chocaría con los precios que ellos insertan para
 las mismas fechas de prueba."""
-from datetime import date
+from datetime import date, datetime, timedelta
 
 import pytest
 from sqlalchemy import create_engine
@@ -17,7 +17,12 @@ from app.models.company import Company
 from app.models.index_bar import IndexBar
 from app.models.price import PriceBar
 from app.models.sync_status import SyncStatus
-from app.services.market_sync import actualizar_valores_recientes, descargar_historial_completo
+from app.services.market_sync import (
+    actualizar_empresa,
+    actualizar_valores_recientes,
+    comprobar_descarga_atascada,
+    descargar_historial_completo,
+)
 
 
 @pytest.fixture
@@ -82,6 +87,7 @@ def test_descarga_completa_crea_precios_indices_y_marca_estado(db_aislada):
     estado = db_aislada.query(SyncStatus).filter(SyncStatus.id == 1).first()
     assert estado is not None
     assert estado.descarga_completa_en_progreso is False
+    assert estado.descarga_id is None
     assert estado.ultima_descarga_completa is not None
 
 
@@ -102,6 +108,88 @@ def test_actualizacion_horaria_refresca_la_vela_de_hoy_y_no_toca_empresas_sin_hi
 
     estado = db_aislada.query(SyncStatus).filter(SyncStatus.id == 1).first()
     assert estado.ultima_actualizacion_horaria is not None
+
+
+def test_actualizar_empresa_solo_toca_el_ticker_solicitado(db_aislada):
+    db_aislada.add(PriceBar(ticker="SAN.MC", date=date(2024, 1, 2), open=1, high=1, low=1, close=1, volume=1))
+    db_aislada.commit()
+
+    resultado = actualizar_empresa("ACS.MC", db=db_aislada, provider=_ProviderFijo(),)
+
+    assert resultado["ticker"] == "ACS.MC"
+    assert resultado["precios_actualizados"] == 2
+    assert resultado["dividendos_nuevos"] == 1
+    assert db_aislada.query(PriceBar).filter(PriceBar.ticker == "ACS.MC").count() == 2
+    assert db_aislada.query(PriceBar).filter(PriceBar.ticker == "SAN.MC").count() == 1
+
+
+def test_descarga_atascada_se_libera_tras_cinco_minutos_sin_nuevas_velas(db_aislada):
+    ultimo_avance = datetime(2026, 1, 1, 12, 0)
+    estado = SyncStatus(
+        id=1,
+        descarga_completa_en_progreso=True,
+        descarga_id="ejecucion-antigua",
+        descarga_recuento_precios=0,
+        descarga_ultimo_avance=ultimo_avance,
+    )
+    db_aislada.add(estado)
+    db_aislada.commit()
+
+    liberada = comprobar_descarga_atascada(db_aislada, ahora=ultimo_avance + timedelta(minutes=5))
+
+    assert liberada is True
+    assert estado.descarga_completa_en_progreso is False
+    assert estado.descarga_id is None
+    assert "5 minutos" in estado.ultimo_error
+
+
+def test_descarga_con_nuevas_velas_renueva_el_plazo(db_aislada):
+    ultimo_avance = datetime(2026, 1, 1, 12, 0)
+    estado = SyncStatus(
+        id=1,
+        descarga_completa_en_progreso=True,
+        descarga_id="ejecucion-activa",
+        descarga_recuento_precios=0,
+        descarga_ultimo_avance=ultimo_avance,
+    )
+    db_aislada.add_all(
+        [
+            estado,
+            PriceBar(ticker="ACS.MC", date=date(2024, 1, 2), open=1, high=1, low=1, close=1, volume=1),
+        ]
+    )
+    db_aislada.commit()
+    ahora = ultimo_avance + timedelta(minutes=6)
+
+    liberada = comprobar_descarga_atascada(db_aislada, ahora=ahora)
+
+    assert liberada is False
+    assert estado.descarga_completa_en_progreso is True
+    assert estado.descarga_recuento_precios == 1
+    assert estado.descarga_ultimo_avance == ahora
+
+
+def test_descarga_que_vuelve_despues_del_timeout_no_guarda_respuesta_antigua(db_aislada):
+    class _ProveedorQueSeQuedaColgado(_ProviderFijo):
+        def get_history(self, ticker, start, end=None):
+            if ticker == "^IBEX":
+                estado = db_aislada.query(SyncStatus).filter(SyncStatus.id == 1).one()
+                comprobar_descarga_atascada(
+                    db_aislada,
+                    ahora=estado.descarga_ultimo_avance + timedelta(minutes=5),
+                )
+            return super().get_history(ticker, start, end)
+
+    resultado = descargar_historial_completo(
+        db=db_aislada,
+        provider=_ProveedorQueSeQuedaColgado(),
+        pausa_entre_valores_segundos=0,
+    )
+
+    estado = db_aislada.query(SyncStatus).filter(SyncStatus.id == 1).one()
+    assert resultado["cancelada"] is True
+    assert db_aislada.query(IndexBar).count() == 0
+    assert estado.descarga_completa_en_progreso is False
 
 
 def test_descarga_completa_se_omite_si_ya_hay_una_en_marcha(db_aislada):

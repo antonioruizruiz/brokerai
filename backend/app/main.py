@@ -30,7 +30,7 @@ app = FastAPI(title="Broker IBEX 35", version="0.1.0", lifespan=lifespan)
 # Permite que el frontend en desarrollo (Vite, puerto 5173) llame a la API
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
