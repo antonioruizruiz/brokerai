@@ -102,108 +102,113 @@ export function CarteraPage() {
         </Card>
       )}
 
-      <Card className="max-w-2xl">
-        <CardHeader>
-          <CardTitle>Añadir posición</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form
-            className="grid grid-cols-2 gap-3 sm:grid-cols-3"
-            onSubmit={(e) => {
-              e.preventDefault()
-              if (!formulario.ticker) return
-              crear.mutate({ ...formulario, notas: formulario.notas || null })
-            }}
-          >
-            <label className="col-span-2 text-sm sm:col-span-1">
-              Empresa
-              <select
-                className="mt-1 w-full rounded-md border border-border bg-transparent px-2 py-1.5 text-sm"
-                value={formulario.ticker}
-                onChange={(e) => setFormulario({ ...formulario, ticker: e.target.value })}
-                required
-              >
-                <option value="">Selecciona...</option>
-                {empresas?.map((c) => (
-                  <option key={c.ticker} value={c.ticker}>
-                    {c.ticker} — {c.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+      <Card>
+        <details>
+          <summary className="cursor-pointer list-none">
+            <CardHeader className="flex-row items-center justify-between space-y-0">
+              <CardTitle>Añadir posición</CardTitle>
+              <span className="text-sm text-primary">Mostrar / ocultar</span>
+            </CardHeader>
+          </summary>
+          <CardContent>
+            <form
+              className="grid grid-cols-2 gap-3 sm:grid-cols-6"
+              onSubmit={(e) => {
+                e.preventDefault()
+                if (!formulario.ticker) return
+                crear.mutate({ ...formulario, notas: formulario.notas || null })
+              }}
+            >
+              <label className="col-span-2 text-sm">
+                Empresa
+                <select
+                  className="mt-1 w-full rounded-md border border-border bg-transparent px-2 py-1.5 text-sm"
+                  value={formulario.ticker}
+                  onChange={(e) => setFormulario({ ...formulario, ticker: e.target.value })}
+                  required
+                >
+                  <option value="">Selecciona...</option>
+                  {empresas?.map((c) => (
+                    <option key={c.ticker} value={c.ticker}>
+                      {c.ticker} — {c.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-            <label className="text-sm">
-              Fecha de compra
-              <input
-                type="date"
-                className="mt-1 w-full rounded-md border border-border bg-transparent px-2 py-1.5 text-sm"
-                value={formulario.fecha_compra}
-                onChange={(e) => setFormulario({ ...formulario, fecha_compra: e.target.value })}
-                required
-              />
-            </label>
+              <label className="text-sm">
+                Fecha de compra
+                <input
+                  type="date"
+                  className="mt-1 w-full rounded-md border border-border bg-transparent px-2 py-1.5 text-sm"
+                  value={formulario.fecha_compra}
+                  onChange={(e) => setFormulario({ ...formulario, fecha_compra: e.target.value })}
+                  required
+                />
+              </label>
 
-            <label className="text-sm">
-              Tipo
-              <select
-                className="mt-1 w-full rounded-md border border-border bg-transparent px-2 py-1.5 text-sm"
-                value={formulario.tipo}
-                title={EXPLICACION_TIPO[formulario.tipo]}
-                onChange={(e) => setFormulario({ ...formulario, tipo: e.target.value as TipoPosicion })}
-              >
-                {Object.entries(ETIQUETA_TIPO).map(([valor, etiqueta]) => (
-                  <option key={valor} value={valor}>
-                    {etiqueta}
-                  </option>
-                ))}
-              </select>
-              <p className="mt-1 text-xs text-muted-foreground">{EXPLICACION_TIPO[formulario.tipo]}</p>
-            </label>
+              <label className="text-sm">
+                Tipo
+                <select
+                  className="mt-1 w-full rounded-md border border-border bg-transparent px-2 py-1.5 text-sm"
+                  value={formulario.tipo}
+                  title={EXPLICACION_TIPO[formulario.tipo]}
+                  onChange={(e) => setFormulario({ ...formulario, tipo: e.target.value as TipoPosicion })}
+                >
+                  {Object.entries(ETIQUETA_TIPO).map(([valor, etiqueta]) => (
+                    <option key={valor} value={valor}>
+                      {etiqueta}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-muted-foreground">{EXPLICACION_TIPO[formulario.tipo]}</p>
+              </label>
 
-            <label className="text-sm">
-              Precio de compra ({empresas?.find((c) => c.ticker === formulario.ticker)?.moneda ?? '€'})
-              <input
-                type="number"
-                step="any"
-                min="0"
-                className="mt-1 w-full rounded-md border border-border bg-transparent px-2 py-1.5 text-sm"
-                value={formulario.precio_compra}
-                onChange={(e) => setFormulario({ ...formulario, precio_compra: Number(e.target.value) })}
-                required
-              />
-            </label>
+              <label className="text-sm">
+                Precio de compra ({empresas?.find((c) => c.ticker === formulario.ticker)?.moneda ?? '€'})
+                <input
+                  type="number"
+                  step="any"
+                  min="0"
+                  className="mt-1 w-full rounded-md border border-border bg-transparent px-2 py-1.5 text-sm"
+                  value={formulario.precio_compra}
+                  onChange={(e) => setFormulario({ ...formulario, precio_compra: Number(e.target.value) })}
+                  required
+                />
+              </label>
 
-            <label className="text-sm">
-              Cantidad
-              <input
-                type="number"
-                min="1"
-                step="1"
-                className="mt-1 w-full rounded-md border border-border bg-transparent px-2 py-1.5 text-sm"
-                value={formulario.cantidad}
-                onChange={(e) => setFormulario({ ...formulario, cantidad: Number(e.target.value) })}
-                required
-              />
-            </label>
+              <label className="text-sm">
+                Cantidad
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  className="mt-1 w-full rounded-md border border-border bg-transparent px-2 py-1.5 text-sm"
+                  value={formulario.cantidad}
+                  onChange={(e) => setFormulario({ ...formulario, cantidad: Number(e.target.value) })}
+                  required
+                />
+              </label>
 
-            <label className="col-span-2 text-sm sm:col-span-3">
-              Notas (opcional)
-              <input
-                type="text"
-                className="mt-1 w-full rounded-md border border-border bg-transparent px-2 py-1.5 text-sm"
-                value={formulario.notas ?? ''}
-                onChange={(e) => setFormulario({ ...formulario, notas: e.target.value })}
-              />
-            </label>
+              <label className="col-span-2 text-sm sm:col-span-6">
+                Notas (opcional)
+                <input
+                  type="text"
+                  className="mt-1 w-full rounded-md border border-border bg-transparent px-2 py-1.5 text-sm"
+                  value={formulario.notas ?? ''}
+                  onChange={(e) => setFormulario({ ...formulario, notas: e.target.value })}
+                />
+              </label>
 
-            <div className="col-span-2 sm:col-span-3">
-              <Button type="submit" disabled={crear.isPending}>
-                {crear.isPending ? 'Añadiendo...' : 'Añadir'}
-              </Button>
-              {crear.isError && <span className="ml-3 text-sm text-danger">No se ha podido añadir.</span>}
-            </div>
-          </form>
-        </CardContent>
+              <div className="col-span-2 sm:col-span-6">
+                <Button type="submit" disabled={crear.isPending}>
+                  {crear.isPending ? 'Añadiendo...' : 'Añadir'}
+                </Button>
+                {crear.isError && <span className="ml-3 text-sm text-danger">No se ha podido añadir.</span>}
+              </div>
+            </form>
+          </CardContent>
+        </details>
       </Card>
 
       {cartera && (
@@ -248,6 +253,15 @@ export function CarteraPage() {
                     </td>
                     <td className="px-5 py-3 text-right">
                       {p.valor_actual_euros != null ? formatPrecio(p.valor_actual_euros, p.moneda) : '—'}
+                      {p.precio_actual != null && (
+                        <>
+                          <br />
+                          <span className="text-xs text-muted-foreground">
+                            {p.cantidad} × {formatPrecio(p.precio_actual, p.moneda)}
+                            {p.fecha_precio_actual ? ` (${formatDate(p.fecha_precio_actual)})` : ''}
+                          </span>
+                        </>
+                      )}
                     </td>
                     <td
                       className={cn(

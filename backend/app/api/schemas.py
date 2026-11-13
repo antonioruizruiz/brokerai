@@ -160,6 +160,7 @@ class PortfolioEntryOut(BaseModel):
     tipo: str
     notas: str | None = None
     precio_actual: float | None = None
+    fecha_precio_actual: date | None = None
     valor_actual_euros: float | None = None
     ganancia_perdida_euros: float | None = None
     ganancia_perdida_pct: float | None = None

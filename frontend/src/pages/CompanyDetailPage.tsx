@@ -10,8 +10,9 @@ import {
   getCompany,
   getCompanyNews,
   getCompanyPrices,
+  getSyncEstado,
 } from '@/lib/api'
-import { formatDate, formatPct, formatPrecio } from '@/lib/format'
+import { formatDate, formatDateTime, formatPct, formatPrecio } from '@/lib/format'
 import { calcularResumenCotizacion } from '@/lib/retornos'
 import { cn } from '@/lib/utils'
 
@@ -49,6 +50,8 @@ export function CompanyDetailPage() {
   })
 
   const resumenCotizacion = data ? calcularResumenCotizacion(data) : null
+
+  const { data: syncEstado } = useQuery({ queryKey: ['sync-estado'], queryFn: getSyncEstado })
 
   const {
     data: noticias,
@@ -126,6 +129,10 @@ export function CompanyDetailPage() {
               </span>
               <span className="text-sm text-muted-foreground">a {formatDate(resumenCotizacion.fechaActual)}</span>
             </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Datos de mercado actualizados:{' '}
+              {syncEstado?.ultima_actualizacion_horaria ? formatDateTime(syncEstado.ultima_actualizacion_horaria) : '—'}
+            </p>
             <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-6">
               {resumenCotizacion.retornos.map(({ etiqueta, pct }) => (
                 <div key={etiqueta} className="rounded-lg border border-border p-2 text-center">

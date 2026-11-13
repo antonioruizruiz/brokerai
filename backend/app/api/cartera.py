@@ -13,13 +13,13 @@ from app.services.portfolio import calcular_posicion, evaluar_aviso
 router = APIRouter(prefix="/api", tags=["cartera"])
 
 
-def _ultimo_precio(db: Session, ticker: str) -> float | None:
-    bar = db.query(PriceBar).filter(PriceBar.ticker == ticker).order_by(PriceBar.date.desc()).first()
-    return bar.close if bar else None
+def _ultimo_precio(db: Session, ticker: str) -> PriceBar | None:
+    return db.query(PriceBar).filter(PriceBar.ticker == ticker).order_by(PriceBar.date.desc()).first()
 
 
 def _entrada_a_salida(db: Session, entrada: PortfolioEntry, company: Company) -> dict:
-    precio_actual = _ultimo_precio(db, entrada.ticker)
+    ultimo_bar = _ultimo_precio(db, entrada.ticker)
+    precio_actual = ultimo_bar.close if ultimo_bar else None
     calculo = calcular_posicion(entrada.precio_compra, entrada.cantidad, precio_actual)
 
     fecha_estimada_proximo = None
@@ -41,6 +41,7 @@ def _entrada_a_salida(db: Session, entrada: PortfolioEntry, company: Company) ->
         "tipo": entrada.tipo,
         "notas": entrada.notas,
         "aviso": aviso,
+        "fecha_precio_actual": ultimo_bar.date if ultimo_bar else None,
         **calculo,
     }
 

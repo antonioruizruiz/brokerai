@@ -171,6 +171,7 @@ export interface PortfolioEntry {
   tipo: TipoPosicion
   notas: string | null
   precio_actual: number | null
+  fecha_precio_actual: string | null
   valor_actual_euros: number | null
   ganancia_perdida_euros: number | null
   ganancia_perdida_pct: number | null
